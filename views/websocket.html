@@ -1,0 +1,94 @@
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Binance WebSocket Stream</title>
+    <style>
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        #trades {
+            height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-top: 20px;
+        }
+        .trade {
+            padding: 5px;
+            border-bottom: 1px solid #eee;
+        }
+        .buy {
+            color: green;
+        }
+        .sell {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Binance BTCUSDT Live Trades</h2>
+        <div>
+            <strong>Status:</strong> <span id="status">Disconnected</span>
+        </div>
+        <div>
+            <strong>Last Price:</strong> <span id="price">-</span>
+        </div>
+        <div id="trades"></div>
+    </div>
+
+    <script>
+        const tradesDiv = document.getElementById('trades');
+        const statusSpan = document.getElementById('status');
+        const priceSpan = document.getElementById('price');
+        
+        function connectWebSocket() {
+            const ws = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@trade');
+            
+            ws.onopen = function() {
+                statusSpan.textContent = 'Connected';
+                statusSpan.style.color = 'green';
+            };
+            
+            ws.onclose = function() {
+                statusSpan.textContent = 'Disconnected';
+                statusSpan.style.color = 'red';
+                setTimeout(connectWebSocket, 5000); // Reconnect after 5 seconds
+            };
+            
+            ws.onmessage = function(event) {
+                const trade = JSON.parse(event.data);
+                const price = parseFloat(trade.p).toFixed(2);
+                const quantity = parseFloat(trade.q).toFixed(6);
+                const time = new Date(trade.T).toLocaleTimeString();
+                
+                priceSpan.textContent = `$${price}`;
+                
+                const tradeDiv = document.createElement('div');
+                tradeDiv.className = `trade ${trade.m ? 'sell' : 'buy'}`;
+                tradeDiv.innerHTML = `
+                    ${time} | Price: $${price} | Quantity: ${quantity} BTC | 
+                    Type: ${trade.m ? 'SELL' : 'BUY'}
+                `;
+                
+                tradesDiv.insertBefore(tradeDiv, tradesDiv.firstChild);
+                
+                // Keep only last 100 trades
+                if (tradesDiv.children.length > 100) {
+                    tradesDiv.removeChild(tradesDiv.lastChild);
+                }
+            };
+            
+            ws.onerror = function(error) {
+                console.error('WebSocket error:', error);
+            };
+        }
+        
+        connectWebSocket();
+    </script>
+</body>
+</html>
