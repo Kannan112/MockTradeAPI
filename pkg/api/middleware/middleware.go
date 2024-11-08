@@ -7,7 +7,6 @@ import (
 
 type Middleware interface {
 	AuthenticateUser() gin.HandlerFunc
-	AuthenticateAdmin() gin.HandlerFunc
 	TrimSpaces() gin.HandlerFunc
 }
 

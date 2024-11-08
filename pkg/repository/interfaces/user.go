@@ -11,6 +11,8 @@ import (
 type UserRepository interface {
 	FindUserByUserID(ctx context.Context, userID uint) (user domain.User, err error)
 	FindUserByEmail(ctx context.Context, email string) (bool, error)
+	ExtractPassword(ctx context.Context, email string) (string, error)
 
+	GetUserId(ctx context.Context, email string) (int, error)
 	SaveUser(ctx context.Context, user request.RegisterUserRequest) (userID uint, err error)
 }

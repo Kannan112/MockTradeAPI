@@ -8,4 +8,6 @@ type UserHandler interface {
 
 	StreamMarketData(c *gin.Context)
 	WebSocketTestPage(c *gin.Context)
+
+	OrderHandler(c *gin.Context)
 }

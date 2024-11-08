@@ -17,13 +17,6 @@ const (
 // Get User Auth middleware
 func (c *middleware) AuthenticateUser() gin.HandlerFunc {
 	return c.authorize(token.User)
-	// return c.middlewareUsingCookie(token.User)
-}
-
-// Get Admin Auth middleware
-func (c *middleware) AuthenticateAdmin() gin.HandlerFunc {
-	return c.authorize(token.Admin)
-	// return c.middlewareUsingCookie(token.Admin)
 }
 
 // authorize request on request header using user type

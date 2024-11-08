@@ -44,3 +44,18 @@ func (c *userDatabase) SaveUser(ctx context.Context, user request.RegisterUserRe
 
 	return userID, err
 }
+
+func (c *userDatabase) ExtractPassword(ctx context.Context, email string) (string, error) {
+	var hash string
+	query := `SELECT password from users where email=$1`
+	err := c.DB.Raw(query, email).Scan(&hash).Error
+	return hash, err
+
+}
+
+func (c *userDatabase) GetUserId(ctx context.Context, email string) (int, error) {
+	var userId int
+	query := `SELECT id from users where email=$1`
+	err := c.DB.Raw(query, email).Scan(&userId).Error
+	return userId, err
+}

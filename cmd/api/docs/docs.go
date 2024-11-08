@@ -148,6 +148,52 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/api/order": {
+            "post": {
+                "description": "Place a buy/sell order with the given details and fetch market data from Binance API.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "orders"
+                ],
+                "summary": "Place an order",
+                "parameters": [
+                    {
+                        "description": "Order request details",
+                        "name": "orderRequest",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.OrderRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Order placed successfully",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid order type",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to fetch market data",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -163,6 +209,28 @@ const docTemplate = `{
                 },
                 "password": {
                     "type": "string"
+                }
+            }
+        },
+        "request.OrderRequest": {
+            "type": "object",
+            "required": [
+                "symbol",
+                "type",
+                "volume"
+            ],
+            "properties": {
+                "symbol": {
+                    "description": "Asset symbol (e.g., \"BTCUSDT\")",
+                    "type": "string"
+                },
+                "type": {
+                    "description": "Order type: \"buy\" or \"sell\"",
+                    "type": "string"
+                },
+                "volume": {
+                    "description": "Quantity to buy or sell",
+                    "type": "number"
                 }
             }
         },

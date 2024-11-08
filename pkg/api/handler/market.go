@@ -1,11 +1,16 @@
 package handler
 
 import (
+	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	"github.com/kannan112/mock-trading-platform-api/pkg/api/handler/request"
+	"github.com/kannan112/mock-trading-platform-api/pkg/api/handler/response"
 )
 
 var binanceURL = "wss://stream.binance.com:9443/ws/btcusdt@ticker"
@@ -16,13 +21,6 @@ var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
 		return true
 	},
-}
-
-type MarketData struct {
-	Symbol   string  `json:"symbol"`
-	Quantity float64 `json:"quantity"`
-	Price    float64 `json:"price"`
-	Time     int64   `json:"time"`
 }
 
 // WebSocket Market Data Stream godoc
@@ -104,3 +102,87 @@ func (h *UserHandler) WebSocketTestPage(c *gin.Context) {
 // 		}
 // 	}
 // }
+
+// OrderHandler godoc
+// @Summary Place an order
+// @Description Place a buy/sell order with the given details and fetch market data from Binance API.
+// @Tags orders
+// @Accept json
+// @Produce json
+// @Param orderRequest body request.OrderRequest true "Order request details"
+// @Success 200 {object} response.Response "Order placed successfully"
+// @Failure 400 {object} response.Response "Invalid order type"
+// @Failure 500 {object} response.Response "Failed to fetch market data"
+// @Router /api/order [post]
+func (h *UserHandler) OrderHandler(ctx *gin.Context) {
+	var orderRequest request.OrderRequest
+	if err := ctx.BindJSON(&orderRequest); err != nil {
+		response.ErrorResponse(ctx, "Failed to bind JSON", err, nil)
+		return
+	}
+
+	// Validate order type early
+	if orderRequest.Type != "buy" && orderRequest.Type != "sell" {
+		response.ErrorResponse(ctx, "Invalid order type", fmt.Errorf("invalid order type: %s", orderRequest.Type), nil)
+		return
+	}
+
+	marketData, err := FetchMarketData(orderRequest.Symbol)
+	if err != nil {
+		response.ErrorResponse(ctx, "Failed to fetch market data", err, nil)
+		return
+	}
+
+	price, err := GetMarketPrice(marketData, orderRequest.Type)
+	if err != nil {
+		response.ErrorResponse(ctx, "Failed to get market price", err, nil)
+		return
+	}
+
+	orderID := uuid.New().String()
+	orderResponse := response.OrderResponse{
+		OrderID: orderID,
+		Symbol:  orderRequest.Symbol,
+		Volume:  orderRequest.Volume,
+		Price:   price,
+		Type:    orderRequest.Type,
+		Status:  "accepted",
+	}
+
+	response.SuccessResponse(ctx, "Order completed", orderResponse)
+}
+
+// Example function to fetch market data
+func FetchMarketData(symbol string) (MarketData, error) {
+	url := fmt.Sprintf("https://api.binance.com/api/v3/ticker/bookTicker?symbol=%s", symbol)
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return MarketData{}, fmt.Errorf("failed to fetch market data: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var data MarketData
+	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+		return MarketData{}, fmt.Errorf("failed to decode market data: %w", err)
+	}
+
+	return data, nil
+}
+
+type MarketData struct {
+	Symbol   string  `json:"symbol"`
+	BidPrice float64 `json:"bidPrice,string"` // Use string tag to handle string JSON input
+	AskPrice float64 `json:"askPrice,string"` // Use string tag to handle string JSON input
+}
+
+func GetMarketPrice(marketData MarketData, orderType string) (float64, error) {
+	switch orderType {
+	case "buy":
+		return marketData.AskPrice, nil
+	case "sell":
+		return marketData.BidPrice, nil
+	default:
+		return 0, fmt.Errorf("invalid order type: %s", orderType)
+	}
+}

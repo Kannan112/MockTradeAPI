@@ -23,11 +23,10 @@ func UserRoutes(api *gin.RouterGroup, middleware middleware.Middleware,
 		api.GET("/market-live", userHandler.WebSocketTestPage)
 	}
 
-	api.Use(middleware.AuthenticateUser())
 	{
 		order := api.Group("/order")
 		{
-			order.POST("")
+			order.POST("", userHandler.OrderHandler)
 			order.DELETE("")
 			order.GET("/position")
 			order.GET("/trade-history")

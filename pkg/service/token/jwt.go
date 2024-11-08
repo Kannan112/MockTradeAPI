@@ -40,18 +40,14 @@ type jwtClaims struct {
 // Generate a new JWT token string from token request
 func (c *jwtAuth) GenerateToken(req GenerateTokenRequest) (GenerateTokenResponse, error) {
 
-	if req.UsedFor != Admin && req.UsedFor != User {
-
+	if req.UsedFor != User {
 		return GenerateTokenResponse{}, ErrInvalidUserType
 	}
 
 	tokenID := utils.GenerateUniqueString()
 	claims := &jwtClaims{
-		TokenID: tokenID,
-		UserID:  req.UserID,
-		// RegisteredClaims: jwt.RegisteredClaims{
-		// 	ExpiresAt: jwt.NewNumericDate(req.ExpirationDate),
-		// },
+		TokenID:   tokenID,
+		UserID:    req.UserID,
 		ExpiresAt: req.ExpireAt,
 	}
 
@@ -61,10 +57,8 @@ func (c *jwtAuth) GenerateToken(req GenerateTokenRequest) (GenerateTokenResponse
 		tokenString string
 		err         error
 	)
-	// sign the token by user type
-	if req.UsedFor == Admin {
-		tokenString, err = token.SignedString([]byte(c.adminSecretKey))
-	} else {
+
+	if req.UsedFor == User {
 		tokenString, err = token.SignedString([]byte(c.userSecretKey))
 	}
 
@@ -83,7 +77,7 @@ func (c *jwtAuth) GenerateToken(req GenerateTokenRequest) (GenerateTokenResponse
 // Verify JWT token string and return TokenResponse
 func (c *jwtAuth) VerifyToken(req VerifyTokenRequest) (VerifyTokenResponse, error) {
 
-	if req.UsedFor != Admin && req.UsedFor != User {
+	if req.UsedFor != User {
 		return VerifyTokenResponse{}, ErrInvalidUserType
 	}
 
@@ -91,9 +85,6 @@ func (c *jwtAuth) VerifyToken(req VerifyTokenRequest) (VerifyTokenResponse, erro
 
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, ErrInvalidToken
-		}
-		if req.UsedFor == Admin {
-			return []byte(c.adminSecretKey), nil
 		}
 		return []byte(c.userSecretKey), nil
 	})

@@ -10,8 +10,7 @@ type TokenService interface {
 type UserType string
 
 const (
-	Admin UserType = "admin"
-	User  UserType = "user"
+	User UserType = "user"
 )
 
 type GenerateTokenRequest struct {
