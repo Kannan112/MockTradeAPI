@@ -9,7 +9,6 @@ package di
 import (
 	"github.com/kannan112/mock-trading-platform-api/pkg/api"
 	"github.com/kannan112/mock-trading-platform-api/pkg/api/handler"
-	"github.com/kannan112/mock-trading-platform-api/pkg/api/middleware"
 	"github.com/kannan112/mock-trading-platform-api/pkg/config"
 	"github.com/kannan112/mock-trading-platform-api/pkg/db"
 	"github.com/kannan112/mock-trading-platform-api/pkg/repository"
@@ -20,15 +19,15 @@ import (
 // Injectors from wire.go:
 
 func InitializeApi(cfg config.Config) (*http.ServerHTTP, error) {
-	tokenService := token.NewTokenService(cfg)
-	middlewareMiddleware := middleware.NewMiddleware(tokenService)
 	gormDB, err := db.ConnectDatabase(cfg)
 	if err != nil {
 		return nil, err
 	}
 	userRepository := repository.NewUserRepository(gormDB)
-	userUseCase := usecase.NewUserUseCase(userRepository, tokenService)
+	tokenService := token.NewTokenService(cfg)
+	orderRepository := repository.NewOrderRepository(gormDB)
+	userUseCase := usecase.NewUserUseCase(userRepository, tokenService, orderRepository)
 	userHandler := handler.NewUserHandler(userUseCase, tokenService)
-	serverHTTP := http.NewServerHTTP(middlewareMiddleware, userHandler)
+	serverHTTP := http.NewServerHTTP(userHandler)
 	return serverHTTP, nil
 }

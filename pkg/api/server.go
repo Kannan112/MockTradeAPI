@@ -6,7 +6,6 @@ import (
 	"github.com/gin-gonic/gin"
 	_ "github.com/kannan112/mock-trading-platform-api/cmd/api/docs"
 	handlerInterface "github.com/kannan112/mock-trading-platform-api/pkg/api/handler/interfaces"
-	"github.com/kannan112/mock-trading-platform-api/pkg/api/middleware"
 	"github.com/kannan112/mock-trading-platform-api/pkg/api/routes"
 
 	swaggerfiles "github.com/swaggo/files"
@@ -23,12 +22,13 @@ type ServerHTTP struct {
 // @contact.name				For API Support
 // @contact.email				abhinandarun11@gmail.com
 //
-// @SecurityDefinitions.apikey	BearerAuth
+// @securityDefinitions.apikey BearerTokenAuth
 // @Name						Authorization
 // @In							header
 // @Description				Add prefix of Bearer before  token Ex: "Bearer token"
 // @Query.collection.format	multi
-func NewServerHTTP(middleware middleware.Middleware, userHandler handlerInterface.UserHandler) *ServerHTTP {
+
+func NewServerHTTP(userHandler handlerInterface.UserHandler) *ServerHTTP {
 
 	engine := gin.New()
 
@@ -40,7 +40,7 @@ func NewServerHTTP(middleware middleware.Middleware, userHandler handlerInterfac
 	engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 
 	// set up routes
-	routes.UserRoutes(engine.Group("/api"), middleware, userHandler)
+	routes.UserRoutes(engine.Group("/api"), userHandler)
 
 	// no handler
 	engine.NoRoute(func(ctx *gin.Context) {

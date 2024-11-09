@@ -1,63 +1,55 @@
 package middleware
 
-import (
-	"errors"
-	"strings"
-
-	"github.com/gin-gonic/gin"
-	"github.com/kannan112/mock-trading-platform-api/pkg/api/handler/response"
-	"github.com/kannan112/mock-trading-platform-api/pkg/service/token"
-)
-
 const (
 	authorizationHeaderKey string = "Authorization"
 	authorizationType      string = "Bearer"
 )
 
-// Get User Auth middleware
-func (c *middleware) AuthenticateUser() gin.HandlerFunc {
-	return c.authorize(token.User)
-}
+// // Get User Auth middleware
+// func (c *middleware) AuthenticateUser() gin.HandlerFunc {
+// 	fmt.Println("authenticateUser func middleware")
+// 	return c.authorize(token.User)
+// }
 
-// authorize request on request header using user type
-func (c *middleware) authorize(tokenUser token.UserType) gin.HandlerFunc {
-	return func(ctx *gin.Context) {
+// // authorize request on request header using user type
+// func (c *middleware) authorize(tokenUser token.UserType) gin.HandlerFunc {
+// 	return func(ctx *gin.Context) {
+// 		authorizationValues := ctx.GetHeader(authorizationHeaderKey)
+// 		fmt.Println("authorize tokenUser middleware", ctx.GetHeader(authorizationValues))
 
-		authorizationValues := ctx.GetHeader(authorizationHeaderKey)
+// 		authFields := strings.Fields(authorizationValues)
+// 		if len(authFields) < 2 {
 
-		authFields := strings.Fields(authorizationValues)
-		if len(authFields) < 2 {
+// 			err := errors.New("authorization token not provided properly with prefix of Bearer")
 
-			err := errors.New("authorization token not provided properly with prefix of Bearer")
+// 			response.ErrorResponse(ctx, "Failed to authorize request", err, nil)
+// 			ctx.Abort()
+// 			return
+// 		}
 
-			response.ErrorResponse(ctx, "Failed to authorize request", err, nil)
-			ctx.Abort()
-			return
-		}
+// 		authType := authFields[0]
+// 		accessToken := authFields[1]
 
-		authType := authFields[0]
-		accessToken := authFields[1]
+// 		if !strings.EqualFold(authType, authorizationType) {
+// 			err := errors.New("invalid authorization type")
+// 			response.ErrorResponse(ctx, "Unauthorized user", err, nil)
+// 			ctx.Abort()
+// 			return
+// 		}
 
-		if !strings.EqualFold(authType, authorizationType) {
-			err := errors.New("invalid authorization type")
-			response.ErrorResponse(ctx, "Unauthorized user", err, nil)
-			ctx.Abort()
-			return
-		}
+// 		tokenVerifyReq := token.VerifyTokenRequest{
+// 			TokenString: accessToken,
+// 			UsedFor:     tokenUser,
+// 		}
 
-		tokenVerifyReq := token.VerifyTokenRequest{
-			TokenString: accessToken,
-			UsedFor:     tokenUser,
-		}
+// 		verifyRes, err := c.tokenService.VerifyToken(tokenVerifyReq)
 
-		verifyRes, err := c.tokenService.VerifyToken(tokenVerifyReq)
+// 		if err != nil {
+// 			response.ErrorResponse(ctx, "Unauthorized user", err, nil)
+// 			ctx.Abort()
+// 			return
+// 		}
 
-		if err != nil {
-			response.ErrorResponse(ctx, "Unauthorized user", err, nil)
-			ctx.Abort()
-			return
-		}
-
-		ctx.Set("userId", verifyRes.UserID)
-	}
-}
+// 		ctx.Set("userId", verifyRes.UserID)
+// 	}
+// }

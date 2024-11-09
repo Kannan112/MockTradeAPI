@@ -10,4 +10,7 @@ type UserHandler interface {
 	WebSocketTestPage(c *gin.Context)
 
 	OrderHandler(c *gin.Context)
+	AllOrders(c *gin.Context)
+	OrderDetails(c *gin.Context)
+	DeteleTrade(c *gin.Context)
 }

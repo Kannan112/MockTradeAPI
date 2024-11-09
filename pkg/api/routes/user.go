@@ -6,7 +6,7 @@ import (
 	"github.com/kannan112/mock-trading-platform-api/pkg/api/middleware"
 )
 
-func UserRoutes(api *gin.RouterGroup, middleware middleware.Middleware,
+func UserRoutes(api *gin.RouterGroup,
 	userHandler handlerInterface.UserHandler,
 
 ) {
@@ -17,7 +17,6 @@ func UserRoutes(api *gin.RouterGroup, middleware middleware.Middleware,
 		auth.POST("/register", userHandler.RegisterUser)
 		auth.POST("/login", userHandler.Login)
 	}
-
 	{
 		api.GET("/market-data", userHandler.StreamMarketData)
 		api.GET("/market-live", userHandler.WebSocketTestPage)
@@ -25,11 +24,12 @@ func UserRoutes(api *gin.RouterGroup, middleware middleware.Middleware,
 
 	{
 		order := api.Group("/order")
+		order.Use(middleware.UserAuth)
 		{
 			order.POST("", userHandler.OrderHandler)
-			order.DELETE("")
-			order.GET("/position")
-			order.GET("/trade-history")
+			order.DELETE(":id", userHandler.DeteleTrade)
+			order.GET(":id", userHandler.OrderDetails)
+			order.GET("/trade-history", userHandler.AllOrders)
 		}
 
 	}

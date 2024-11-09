@@ -27,6 +27,7 @@ type Account struct {
 // Pending ===== order
 type Order struct {
 	ID        uint      `gorm:"primaryKey"`
+	OrderUUID string    `gorm:"not null;index"`
 	UserID    uint      `gorm:"not null;index"`
 	Symbol    string    `gorm:"not null"`
 	Volume    float64   `gorm:"not null"`

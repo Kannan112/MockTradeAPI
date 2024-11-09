@@ -11,8 +11,7 @@ import (
 )
 
 type jwtAuth struct {
-	adminSecretKey string
-	userSecretKey  string
+	userSecretKey string
 }
 
 // New TokenAuth
@@ -76,6 +75,8 @@ func (c *jwtAuth) GenerateToken(req GenerateTokenRequest) (GenerateTokenResponse
 
 // Verify JWT token string and return TokenResponse
 func (c *jwtAuth) VerifyToken(req VerifyTokenRequest) (VerifyTokenResponse, error) {
+
+	fmt.Println(req.TokenString, "req")
 
 	if req.UsedFor != User {
 		return VerifyTokenResponse{}, ErrInvalidUserType

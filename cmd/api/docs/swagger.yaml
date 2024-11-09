@@ -179,11 +179,100 @@ paths:
           description: Failed to fetch market data
           schema:
             $ref: '#/definitions/response.Response'
+      security:
+      - BearerTokenAuth: []
       summary: Place an order
       tags:
       - orders
+  /api/order/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a specific order by order ID for the authenticated user.
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Order deleted successfully
+          schema:
+            $ref: '#/definitions/response.Response'
+        "400":
+          description: Invalid order ID
+          schema:
+            $ref: '#/definitions/response.Response'
+        "500":
+          description: Failed to delete order
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - BearerTokenAuth: []
+      summary: Delete an order
+      tags:
+      - orders
+    get:
+      consumes:
+      - application/json
+      description: Retrieve the details of a specific order by order ID for the authenticated
+        user.
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Order details retrieved successfully
+          schema:
+            $ref: '#/definitions/response.Response'
+        "400":
+          description: Invalid order ID
+          schema:
+            $ref: '#/definitions/response.Response'
+        "500":
+          description: Failed to retrieve order details
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - BearerTokenAuth: []
+      summary: Get order details
+      tags:
+      - orders
+  /api/order/trade-history:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve all buy/sell orders for the authenticated user.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Order list retrieved successfully
+          schema:
+            $ref: '#/definitions/response.Response'
+        "400":
+          description: User ID not found in context
+          schema:
+            $ref: '#/definitions/response.Response'
+        "500":
+          description: Failed to retrieve order list
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - BearerTokenAuth: []
+      summary: List all orders
+      tags:
+      - orders
 securityDefinitions:
-  BearerAuth:
+  BearerTokenAuth:
     description: 'Add prefix of Bearer before  token Ex: "Bearer token"'
     in: header
     name: Authorization

@@ -1,16 +1,17 @@
 package handler
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/kannan112/mock-trading-platform-api/pkg/api/handler/request"
 	"github.com/kannan112/mock-trading-platform-api/pkg/api/handler/response"
+	"github.com/kannan112/mock-trading-platform-api/pkg/api/middleware"
 )
 
 var binanceURL = "wss://stream.binance.com:9443/ws/btcusdt@ticker"
@@ -108,6 +109,7 @@ func (h *UserHandler) WebSocketTestPage(c *gin.Context) {
 // @Description Place a buy/sell order with the given details and fetch market data from Binance API.
 // @Tags orders
 // @Accept json
+// @Security BearerTokenAuth
 // @Produce json
 // @Param orderRequest body request.OrderRequest true "Order request details"
 // @Success 200 {object} response.Response "Order placed successfully"
@@ -115,6 +117,13 @@ func (h *UserHandler) WebSocketTestPage(c *gin.Context) {
 // @Failure 500 {object} response.Response "Failed to fetch market data"
 // @Router /api/order [post]
 func (h *UserHandler) OrderHandler(ctx *gin.Context) {
+
+	uid, err := middleware.GetUserIdFromContext(ctx)
+	if err != nil {
+		response.ErrorResponse(ctx, "Failed to get userid from context", err, nil)
+		return
+	}
+
 	var orderRequest request.OrderRequest
 	if err := ctx.BindJSON(&orderRequest); err != nil {
 		response.ErrorResponse(ctx, "Failed to bind JSON", err, nil)
@@ -127,62 +136,127 @@ func (h *UserHandler) OrderHandler(ctx *gin.Context) {
 		return
 	}
 
-	marketData, err := FetchMarketData(orderRequest.Symbol)
+	marketData, err := h.userUseCase.FetchMarketData(orderRequest.Symbol)
 	if err != nil {
 		response.ErrorResponse(ctx, "Failed to fetch market data", err, nil)
 		return
 	}
 
-	price, err := GetMarketPrice(marketData, orderRequest.Type)
+	price, err := h.userUseCase.GetMarketPrice(marketData, orderRequest.Type)
 	if err != nil {
 		response.ErrorResponse(ctx, "Failed to get market price", err, nil)
 		return
 	}
+	fmt.Println(price, "price")
 
-	orderID := uuid.New().String()
+	orderUUID := uuid.New().String()
 	orderResponse := response.OrderResponse{
-		OrderID: orderID,
-		Symbol:  orderRequest.Symbol,
-		Volume:  orderRequest.Volume,
-		Price:   price,
-		Type:    orderRequest.Type,
-		Status:  "accepted",
+		OrderUUID: orderUUID,
+		Symbol:    orderRequest.Symbol,
+		Volume:    orderRequest.Volume,
+		Price:     price,
+		Type:      orderRequest.Type,
+		Status:    "accepted",
 	}
-
-	response.SuccessResponse(ctx, "Order completed", orderResponse)
-}
-
-// Example function to fetch market data
-func FetchMarketData(symbol string) (MarketData, error) {
-	url := fmt.Sprintf("https://api.binance.com/api/v3/ticker/bookTicker?symbol=%s", symbol)
-
-	resp, err := http.Get(url)
+	oid, err := h.userUseCase.CreateOrder(ctx, uid, orderResponse)
 	if err != nil {
-		return MarketData{}, fmt.Errorf("failed to fetch market data: %w", err)
+		response.ErrorResponse(ctx, "failed to create order", err, nil)
+		return
 	}
-	defer resp.Body.Close()
+	orderResponse.OrderID = uint(oid)
 
-	var data MarketData
-	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		return MarketData{}, fmt.Errorf("failed to decode market data: %w", err)
-	}
-
-	return data, nil
+	response.SuccessResponse(ctx, "order completed", orderResponse)
 }
 
-type MarketData struct {
-	Symbol   string  `json:"symbol"`
-	BidPrice float64 `json:"bidPrice,string"` // Use string tag to handle string JSON input
-	AskPrice float64 `json:"askPrice,string"` // Use string tag to handle string JSON input
+// AllOrders godoc
+// @Summary List all orders
+//
+// @Security BearerTokenAuth
+//
+// @Description Retrieve all buy/sell orders for the authenticated user.
+// @Tags orders
+// @Accept json
+// @Produce json
+// @Success 200 {object} response.Response "Order list retrieved successfully"
+// @Failure 400 {object} response.Response "User ID not found in context"
+// @Failure 500 {object} response.Response "Failed to retrieve order list"
+// @Router /api/order/trade-history [get]
+func (h *UserHandler) AllOrders(c *gin.Context) {
+
+	uid, err := middleware.GetUserIdFromContext(c)
+	if err != nil {
+		response.ErrorResponse(c, "Faild to get user id from context", err, nil)
+		return
+	}
+	data, err := h.userUseCase.ListOrders(uid)
+	if err != nil {
+		response.ErrorResponse(c, "Failed to retrieve order list", err, nil)
+		return
+	}
+
+	response.SuccessResponse(c, "Order list retrieved successfully", data)
 }
 
-func GetMarketPrice(marketData MarketData, orderType string) (float64, error) {
-	switch orderType {
-	case "buy":
-		return marketData.AskPrice, nil
-	case "sell":
-		return marketData.BidPrice, nil
-	default:
-		return 0, fmt.Errorf("invalid order type: %s", orderType)
+// OrderDetails godoc
+// @Summary Get order details
+// @Description Retrieve the details of a specific order by order ID for the authenticated user.
+// @Tags orders
+// @Accept json
+// @Security BearerTokenAuth
+// @Produce json
+// @Param id path int true "Order ID"
+// @Success 200 {object} response.Response "Order details retrieved successfully"
+// @Failure 400 {object} response.Response "Invalid order ID"
+// @Failure 500 {object} response.Response "Failed to retrieve order details"
+// @Router /api/order/{id} [get]
+func (h *UserHandler) OrderDetails(c *gin.Context) {
+	idStr := c.Param("id")
+	orderid, err := strconv.Atoi(idStr)
+	if err != nil {
+		response.ErrorResponse(c, "Faild to get user id from context", err, nil)
+		return
 	}
+	uid, err := middleware.GetUserIdFromContext(c)
+	if err != nil {
+		response.ErrorResponse(c, "Faild to get user id from context", err, nil)
+	}
+
+	data, err := h.userUseCase.GetOrderByID(c, uint(uid), uint(orderid))
+	if err != nil {
+		response.ErrorResponse(c, "failed to get order details", err, nil)
+		return
+	}
+	response.SuccessResponse(c, "order details", data)
+}
+
+// DeteleTrade godoc
+// @Summary Delete an order
+// @Description Delete a specific order by order ID for the authenticated user.
+// @Tags orders
+// @Accept json
+// @Security BearerTokenAuth
+// @Produce json
+// @Param id path int true "Order ID"
+// @Success 200 {object} response.Response "Order deleted successfully"
+// @Failure 400 {object} response.Response "Invalid order ID"
+// @Failure 500 {object} response.Response "Failed to delete order"
+// @Router /api/order/{id} [delete]
+func (h *UserHandler) DeteleTrade(c *gin.Context) {
+	idStr := c.Param("id")
+	orderid, err := strconv.Atoi(idStr)
+	if err != nil {
+		response.ErrorResponse(c, "Faild to get user id from context", err, nil)
+		return
+	}
+	uid, err := middleware.GetUserIdFromContext(c)
+	if err != nil {
+		response.ErrorResponse(c, "Faild to get user id from context", err, nil)
+	}
+
+	err = h.userUseCase.DeleteOrderById(c, uint(uid), uint(orderid))
+	if err != nil {
+		response.ErrorResponse(c, "failed to get order details", err, nil)
+		return
+	}
+	response.SuccessResponse(c, "order deleted")
 }

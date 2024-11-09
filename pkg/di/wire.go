@@ -7,7 +7,6 @@ import (
 	"github.com/google/wire"
 	http "github.com/kannan112/mock-trading-platform-api/pkg/api"
 	"github.com/kannan112/mock-trading-platform-api/pkg/api/handler"
-	"github.com/kannan112/mock-trading-platform-api/pkg/api/middleware"
 	"github.com/kannan112/mock-trading-platform-api/pkg/config"
 	"github.com/kannan112/mock-trading-platform-api/pkg/db"
 	"github.com/kannan112/mock-trading-platform-api/pkg/repository"
@@ -22,7 +21,7 @@ func InitializeApi(cfg config.Config) (*http.ServerHTTP, error) {
 		token.NewTokenService,
 
 		// repository
-		middleware.NewMiddleware,
+		repository.NewOrderRepository,
 		repository.NewUserRepository,
 
 		//usecase

@@ -51,7 +51,7 @@ func (c *UserHandler) RegisterUser(ctx *gin.Context) {
 		response.ErrorResponse(ctx, "Failed to register user", err, nil)
 		return
 	}
-	response.SuccessResponse(ctx, "User registered successfully", nil)
+	response.SuccessResponse(ctx, "User registered successfully")
 }
 
 // Login godoc
